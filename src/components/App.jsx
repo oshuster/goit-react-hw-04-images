@@ -4,9 +4,9 @@ import { Notify } from 'notiflix/build/notiflix-aio';
 
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
-import Loader from './Loader/Loader';
-import Button from './Button/Button';
-import Modal from './Modal/Modal';
+import { Loader } from './Loader/Loader';
+import { Button } from './Button/Button';
+import { Modal } from './Modal/Modal';
 
 import style from './app.module.css';
 
