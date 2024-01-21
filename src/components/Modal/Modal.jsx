@@ -5,7 +5,7 @@ import { useCallback, useEffect } from 'react';
 
 const modalRoot = document.getElementById('modal-root');
 
-export const Modal = ({ largeImg, changeStateModal }) => {
+export const Modal = ({ largeImg: { img, alt }, changeStateModal }) => {
   const closeModal = useCallback(
     ({ target, currentTarget, code }) => {
       if (target === currentTarget || code === 'Escape') {
@@ -22,8 +22,6 @@ export const Modal = ({ largeImg, changeStateModal }) => {
       document.removeEventListener('keydown', closeModal);
     };
   }, [closeModal]);
-  l;
-  const { img, alt } = largeImg;
   return createPortal(
     <div className={style.overlay} onClick={closeModal}>
       <div className={style.modal}>

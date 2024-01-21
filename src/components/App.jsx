@@ -1,95 +1,81 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import { getPost } from 'components/api/fetchPictures';
 import { Notify } from 'notiflix/build/notiflix-aio';
 
-import Searchbar from './Searchbar/Searchbar';
-import ImageGallery from './ImageGallery/ImageGallery';
+import { Searchbar } from './Searchbar/Searchbar';
+import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Loader } from './Loader/Loader';
 import { Button } from './Button/Button';
 import { Modal } from './Modal/Modal';
 
 import style from './app.module.css';
 
-class App extends Component {
-  state = {
-    query: '',
-    page: 1,
-    data: [],
-    error: null,
-    isLoading: false,
-    modalOpen: false,
-    showBtn: false,
-    largeImg: {},
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [searchData, setSearchData] = useState([]);
+  const [largeImg, setLargeImg] = useState({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showBtn, setShowBtn] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
 
-  getSearchKey = searchKey => {
+  const getSearchKey = searchKey => {
     const query = searchKey.trim().replace(/ /g, '+');
-    this.setState({ query, page: 1, data: [] });
+    setQuery(query);
+    setSearchData([]);
+    setPage(1);
   };
 
-  componentDidUpdate(_, prevState) {
-    if (
-      this.state.page !== prevState.page ||
-      this.state.query !== prevState.query
-    ) {
-      this.handleImageSearchRequest();
-    }
-  }
+  useEffect(() => {
+    if (!query) return;
 
-  async handleImageSearchRequest() {
-    const { query, page } = this.state;
-
-    try {
-      this.setState({ isLoading: true });
-      const response = await getPost(query, page);
-      if (response.data.totalHits === 0) {
-        Notify.info(`По даному запиту нічого не знайдено`);
+    const fetchImages = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getPost(query, page);
+        if (response.data.totalHits === 0) {
+          Notify.info(`По даному запиту нічого не знайдено`);
+        }
+        setSearchData(prevData => [...prevData, ...response.data.hits]);
+        setShowBtn(page < Math.ceil(response.data.totalHits / 12));
+      } catch (error) {
+        setErrorMessage(error.message);
+        Notify.failure(errorMessage);
+      } finally {
+        setIsLoading(false);
       }
-      this.setState(({ data }) => ({
-        data: [...data, ...response.data.hits],
-        showBtn: this.state.page < Math.ceil(response.data.totalHits / 12),
-      }));
-    } catch (error) {
-      this.setState({ error: error.message });
-      Notify.failure(error.message);
-    } finally {
-      this.setState({ isLoading: false });
-    }
-  }
+    };
+    fetchImages();
+  }, [query, page, errorMessage]);
 
-  loadMore = () => {
-    this.setState(({ page }) => ({ page: page + 1 }));
+  const loadMore = () => {
+    setPage(page => page + 1);
   };
 
-  showModal = (img, alt) => {
-    this.setState({ modalOpen: true, largeImg: { img, alt } });
+  const showModal = (img, alt) => {
+    setLargeImg({ img, alt });
+    setModalOpen(true);
   };
 
-  changeStateModal = () => {
-    this.setState({ modalOpen: false });
+  const changeStateModal = () => {
+    setModalOpen(false);
   };
 
-  render() {
-    const { getSearchKey, loadMore, changeStateModal, showModal } = this;
-    const { data, isLoading, modalOpen, largeImg, showBtn } = this.state;
+  const isPosts = Boolean(searchData.length);
 
-    const isPosts = Boolean(data.length);
+  return (
+    <div className={style.App}>
+      <Searchbar getSearchKey={getSearchKey} />
+      {isPosts && <ImageGallery data={searchData} showModal={showModal} />}
+      {modalOpen && (
+        <Modal changeStateModal={changeStateModal} largeImg={largeImg} />
+      )}
 
-    return (
-      <div className={style.App}>
-        <Searchbar getSearchKey={getSearchKey} />
-        {isPosts && <ImageGallery data={data} showModal={showModal} />}
-        {modalOpen && (
-          <Modal changeStateModal={changeStateModal} largeImg={largeImg} />
-        )}
-
-        {isLoading && <Loader />}
-        {showBtn && (
-          <Button title="Load more" type="button" loadMore={loadMore} />
-        )}
-      </div>
-    );
-  }
-}
-
-export default App;
+      {isLoading && <Loader />}
+      {showBtn && (
+        <Button title="Load more" type="button" loadMore={loadMore} />
+      )}
+    </div>
+  );
+};
